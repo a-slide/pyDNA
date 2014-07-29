@@ -83,10 +83,10 @@ def make_cmd_str(prog_name, opt_dict={}, opt_list=[]):
 
 #~~~~~~~FILE MANIPULATION~~~~~~~#
 
-def fgzip(in_name, out_name=None):
+def fgzip(in_path, out_path=None):
     """
-    @param in_name Path of the input uncompressed file
-    @param out_name Path of the output compressed file (facultative)
+    @param in_path Path of the input uncompressed file
+    @param out_path Path of the output compressed file (facultative)
     @exception  OSError Can be raise by open
     """
     # Function specific imports
@@ -94,33 +94,33 @@ def fgzip(in_name, out_name=None):
     from os import remove, path
 
     # Generate a automatic name if none is given
-    if not out_name:
-        out_name = in_name +".gz"
+    if not out_path:
+        out_path = in_path +".gz"
 
     # Try to initialize handle for
     try:
-        in_handle = open(in_name, "r")
-        out_handle = gzip.open(out_name, "w")
+        in_handle = open(in_path, "r")
+        out_handle = gzip.open(out_path, "w")
         # Write input file in output file
-        print ("Compressing {}".format(in_name))
+        print ("Compressing {}".format(in_path))
         out_handle.write (in_handle.read())
         # Close both files
         in_handle.close()
         out_handle.close()
-        return path.abspath(out_name)
+        return path.abspath(out_path)
 
     except IOError as E:
         print(E)
-        if path.isfile (out_name):
+        if path.isfile (out_path):
             try:
-                remove (out_name)
+                remove (out_path)
             except OSError:
-                print "Can't remove {}".format(out_name)
+                print "Can't remove {}".format(out_path)
 
-def fgunzip(in_name, out_name=None):
+def fgunzip(in_path, out_path=None):
     """
-    @param in_name Path of the input compressed file
-    @param out_name Path of the output uncompressed file (facultative)
+    @param in_path Path of the input compressed file
+    @param out_path Path of the output uncompressed file (facultative)
     @exception  OSError Can be raise by open
     """
     # Function specific imports
@@ -128,28 +128,28 @@ def fgunzip(in_name, out_name=None):
     from os import remove, path
 
     # Generate a automatic name without .gz extension if none is given
-    if not out_name:
-        out_name = in_name[0:-3]
+    if not out_path:
+        out_path = in_path[0:-3]
 
     try:
         # Try to initialize handle for
-        in_handle = gzip.open(in_name, "r")
-        out_handle = open(out_name, "w")
+        in_handle = gzip.open(in_path, "r")
+        out_handle = open(out_path, "w")
         # Write input file in output file
-        print ("Uncompressing {}".format(in_name))
+        print ("Uncompressing {}".format(in_path))
         out_handle.write (in_handle.read())
         # Close both files
         out_handle.close()
         in_handle.close()
-        return path.abspath(out_name)
+        return path.abspath(out_path)
 
     except IOError as E:
         print(E)
-        if path.isfile (out_name):
+        if path.isfile (out_path):
             try:
-                remove (out_name)
+                remove (out_path)
             except OSError:
-                print "Can't remove {}".format(out_name)
+                print "Can't remove {}".format(out_path)
 
 
 def mkdir(fp):
@@ -279,7 +279,7 @@ def import_seq(filename, col_type="dict", seq_type="fasta"):
         assert col_type  in allowed_types, "The output collection type have to be in the following list : "+ ", ".join(allowed_types)
 
         # Open gzipped or uncompressed file
-        if file_extension(filename) in ["gz","GZ"]:
+        if file_extension(filename).lower() == "gz":
             #print("\tUncompressing and extracting data")
             handle = gzip.open(filename, "r")
         else:

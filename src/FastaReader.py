@@ -1,9 +1,7 @@
 #~~~~~~~GLOBAL IMPORTS~~~~~~~#
 # Standard library packages import
 import gzip
-from tempfile import mkstemp
 from os.path import getsize, isfile
-from sys import exit as sys_exit
 from os import remove
 
 # Third party package import
