@@ -115,7 +115,7 @@ class BlastHit(object):
         self.Instances.append(self)
 
     def __repr__(self):
-        msg = "{}\n".format(self.__str__())
+        msg = "{}".format(self.__str__())
         msg += "\tQuery\t{}:{}-{}({})\n".format(self.q_id, self.q_start, self.q_end, "+" if self.q_orient else "-")
         msg += "\tSubject\t{}:{}-{}({})\n".format(self.s_id, self.s_start, self.s_end, "+" if self.q_orient else "-")
         msg += "\tLenght : {}\tIdentity : {}%\tEvalue : {}\tBit score : {}\n".format(self.length, self.identity, self.evalue, self.bscore)

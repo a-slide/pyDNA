@@ -1,15 +1,12 @@
 #~~~~~~~GLOBAL IMPORTS~~~~~~~#
 
 # Standard library packages import
-from os import remove, path
-from tempfile import mkstemp
-import gzip
+from os import path
 
 # Local library packages import
 from Utilities import mkdir, import_seq, file_basename, file_name, file_extension, fgunzip
 from BlastnWrapper import Aligner
 from MakeblastdbWrapper import NewDB, ExistingDB
-
 
 #~~~~~~~MAIN METHODS~~~~~~~#
 
@@ -62,14 +59,8 @@ def align  (query_list,
         mkdir(db_outdir)
         db_path = path.join (db_outdir, db_outname)
 
-        # If the fastq file is compressed = extract the file in a tempory file
-        if file_extension(subject_fasta).lower() == "gz":
-            tmp_handle, tmp_path = mkstemp(suffix='.fa')
-            fgunzip (in_path=subject_fasta, out_path=tmp_path)
-            db = NewDB(tmp_path, db_path, db_opt, db_maker)
-            remove(tmp_path)
-        else:
-            db = NewDB(subject_fasta, db_path, db_opt, db_maker)
+        # Create the new database
+        db = NewDB(subject_fasta, db_path, db_opt, db_maker)
 
     # Initialise a Blastn object
     blast = Aligner(db, align_opt, aligner)

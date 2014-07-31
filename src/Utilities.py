@@ -83,6 +83,24 @@ def make_cmd_str(prog_name, opt_dict={}, opt_list=[]):
 
 #~~~~~~~FILE MANIPULATION~~~~~~~#
 
+def copyFile(src, dest):
+    """
+    Copy a single file to a destination file or folder (with error handling/reporting)
+    @param src Source file path
+    @param dest Path of the folder where to copy the source file
+    """
+    import shutil
+
+    try:
+        shutil.copy(src, dest)
+    # eg. src and dest are the same file
+    except shutil.Error as e:
+        print('Error: %s' % e)
+    # eg. source or destination doesn't exist
+    except IOError as e:
+        print('Error: %s' % e.strerror)
+
+
 def fgzip(in_path, out_path=None):
     """
     @param in_path Path of the input uncompressed file
@@ -99,8 +117,8 @@ def fgzip(in_path, out_path=None):
 
     # Try to initialize handle for
     try:
-        in_handle = open(in_path, "r")
-        out_handle = gzip.open(out_path, "w")
+        in_handle = open(in_path, "rb")
+        out_handle = gzip.open(out_path, "wb")
         # Write input file in output file
         print ("Compressing {}".format(in_path))
         out_handle.write (in_handle.read())
@@ -133,8 +151,8 @@ def fgunzip(in_path, out_path=None):
 
     try:
         # Try to initialize handle for
-        in_handle = gzip.open(in_path, "r")
-        out_handle = open(out_path, "w")
+        in_handle = gzip.GzipFile(in_path, 'rb')
+        out_handle = open(out_path, "wb")
         # Write input file in output file
         print ("Uncompressing {}".format(in_path))
         out_handle.write (in_handle.read())
@@ -151,6 +169,48 @@ def fgunzip(in_path, out_path=None):
             except OSError:
                 print "Can't remove {}".format(out_path)
 
+def expand_filelist (file_list, outdir="./", copy_ungz=False):
+    """
+    Iterate over a list of files and expand files in outdir if the files are gzipped
+    Else the file won't be modified and won't be moved from it's current directory
+    @param file_list List of path to files eventually gzipped
+    @param outdir Path of the directory in which to uncompress the gziped files
+    @param copy_ungz Copy uncompressed file in the outdir without modification
+    @return A list of path to uncompressed files including the name of original files that do not
+    needed to be uncompressed.
+    """
+    # Function specific imports
+    from os import path, link
+    from shutil import copy
+
+    new_file_list = []
+
+    for fp in file_list:
+        assert path.isfile(fp), "{} is not a valid file".format(fp)
+
+        # Extract if gziped
+        if fp[-2:].lower() == "gz":
+            out_path = path.join (outdir, file_name(fp)[:-3])
+            fgunzip (fp, out_path)
+            new_file_list.append (path.abspath(out_path))
+
+        # Copy to the outdir if requested
+        elif copy_ungz :
+            out_path = path.join (outdir, file_name(fp))
+            # try to create a hard link else just recopy
+            try:
+                link(fp, out_path)
+            except Exception:
+                print ('link failed')
+                copyFile(fp, outdir)
+                out_path = path.join (outdir, file_name(fp))
+            new_file_list.append(path.abspath(out_path))
+
+        # Else just add to the new list
+        else:
+            new_file_list.append(path.abspath(fp))
+
+    return new_file_list
 
 def mkdir(fp):
     """
@@ -164,9 +224,10 @@ def mkdir(fp):
     from os import mkdir, path
 
     if path.exists(fp) and path.isdir(fp):
-        print ("'{}' already exist in the current directory".format(fp))
+        #print ("'{}' already exist in the current directory".format(fp))
+        pass
     else:
-        print ("Creating '{}' in the current directory".format(fp))
+        #print ("Creating '{}' in the current directory".format(fp))
         mkdir(fp)
 
 def merge_files (input_list, output=None, compress_output=True):
@@ -219,7 +280,6 @@ def merge_files (input_list, output=None, compress_output=True):
         exit()
 
     return output
-
 
 def file_basename (path):
     """

@@ -1,25 +1,10 @@
-"""
-@package RefMasker
-@brief Find DNA sequences homologies between a list of query and a subject and to write a modified
-version of the subject sequence.
-* First a blast database is created from a reference fasta file if it is not provided by the user.
-* Then, query sequences fasta files are blasted against the newly created subject database.
-* Finally, if blast hits are found (homologies) the subject genome is imported, hit locations are
-masked with "Ns" and a new masked reference is written
-@copyright [GNU General Public License v2](http://www.gnu.org/licenses/gpl-2.0.html)
-@author Adrien Leger - 2014
-* <adrien.leger@gmail.com>
-* <adrien.leger@inserm.fr>
-* <adrien.leger@univ-nantes.fr>
-* [Github](https://github.com/a-slide)
-* [Atlantic Gene Therapies - INSERM 1089] (http://www.atlantic-gene-therapies.fr/)
-"""
-
 #~~~~~~~GLOBAL IMPORTS~~~~~~~#
 
 # Standard library packages import
 from os import remove, path
 import gzip
+from time import time
+from sys import stdout
 
 # Third party package import
 from Bio import SeqIO
@@ -36,19 +21,25 @@ def mask (  subject_fasta,
             ref_outname="masked_ref.fa",
             compress_ouput=True ):
     """
-    @return If the sequence was edited the path of the edited reference is indicated, else the
-    unmodified sequence.
+    Import a reference fasta sequence, Mask positions indicated by hits from a hit_list and write
+    the modified fasta sequence in a new file.
+    @param subject_fasta Fasta sequence of the subject to edit (can be gzipped)
+    @param hit_list List of hit objects. Hits need at least 3 fields named s_id, s_start and s_end
+    coresponding to the name of the sequence matched, and the hit start/end (0 based).
+    @param ref_outdir Directory where the masked reference will be created
+    @param ref_outname Name of the masked reference
+    @return A path to the modified sequence if the hit list was valid.
     """
 
     # Test if object the first object of hit_list have the require s_id, s_start and s_end fields
     try:
         a = hit_list[0].s_id
         a = hit_list[0].s_start
-        a = hit_list[0].s_start
+        a = hit_list[0].s_end
 
     except (IndexError, AttributeError) as E:
         print (E)
-        print ("The hit_list does not contain suitable hit objects")
+        print ("The hit_list does not contain suitable hit objects or is empty")
         print ("The subject fasta file will not be edited")
         return subject_fasta
 
@@ -73,15 +64,20 @@ def mask (  subject_fasta,
     id_list = {hit.s_id:0 for hit in hit_list}.keys()
 
     # Iterate over record in the subject fasta file
-    print ("\nWriting new version of {} in which homologies with the hit list are masked".format(
+    print ("\nMasking hit positions and writting a new reference".format(
         file_basename (subject_fasta)))
     # Iterate over record in the subject fasta file
+    i=j=0
+    start_time = time()
     for record in SeqIO.parse(in_handle, "fasta"):
+        # Progress Marker
+        stdout.write(".")
+        stdout.flush()
 
         # Check if the record is in the list of record to modify
         if record.id in id_list:
-
-            print ("Hit found in {}. Editing the sequence".format(record.id))
+            i+=1
+            #~print ("Hit found in {}. Editing the sequence".format(record.id))
             # Casting Seq type to MutableSeq Type to allow string editing
             record.seq = record.seq.tomutable()
 
@@ -90,15 +86,21 @@ def mask (  subject_fasta,
                 if record.id == hit.s_id:
 
                     # For all position between start and end coordinates modify the base by N
-                    for position in range (hit.s_start, hit.s_end):
+                    for position in range (hit.s_start, hit.s_end+1):
                         record.seq[position]= 'N'
         else:
-            print ("No hit found in {}".format(record.id))
+            j+=1
+            #~print ("No hit found in {}".format(record.id))
 
         # Finally write the sequence modified or not
         out_handle.write(record.format("fasta"))
 
-    # close files and return the masked ref path
+    # Report informations
+    print("\nNew reference file {} created".format(ref_outname))
+    print("{} Sequence processed of which {} sequences modified".format(i+j,i))
+    print("Execution time : {}s\n".format(round(time()-start_time),2))
+
+    # Close files and return the masked ref path
     in_handle.close()
     out_handle.close()
     return ref_path

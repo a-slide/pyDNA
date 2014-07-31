@@ -1,11 +1,12 @@
 #~~~~~~~GLOBAL IMPORTS~~~~~~~#
 # Standard library packages import
-from os import path, remove
+import os, gzip
 from multiprocessing import cpu_count
 from time import time
+from tempfile import mkstemp
 
 # Local library packages
-from Utilities import run_command, file_basename, make_cmd_str
+from Utilities import run_command, file_basename, make_cmd_str, fgunzip
 from BlastHit import BlastHit
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -25,7 +26,7 @@ class Aligner(object):
         msg += "Options :\n"
         for i, j in self.blastn_opt.items():
             msg += "\tFlag : {}\tValue : {}\n".format(i,j)
-        msg += "BlastDB : {}\n".format(repr(self.Blastdb))
+            msg += "BlastDB : {}\n".format(repr(self.Blastdb))
         return msg
 
     def __str__(self):
@@ -69,11 +70,29 @@ class Aligner(object):
         """
         # Build the command line string
         self.blastn_opt["evalue"] = evalue
-        self.blastn_opt["query"] = query
-        cmd = make_cmd_str(self.blastn, self.blastn_opt)
+        query_name = file_basename(query)
 
-        # Execute blastn (Can raise a SystemError) and create BlastHit objects
-        print ("\nBlast {} against {} database with blastn".format(file_basename(query), file_basename (self.Blastdb.db_path)))
+        # If the fasta file is compressed = extract the file in a temporary file
+        if query[-2:].lower() == "gz":
+            print ("Extracting the compressed fasta in a temporary file")
+            fd, tmp_path = mkstemp()
+            fgunzip (in_path=query, out_path=tmp_path)
+            self.blastn_opt["query"] = tmp_path
+            hits_list = self._align(query_name)
+            os.close(fd)
+            os.remove(tmp_path)
+            return hits_list
+        # Else just proceed by using the fasta reference
+        else:
+            self.blastn_opt["query"] = query
+            return self._align(query_name)
+
+    def _align (self, query_name):
+
+        print ("Blast {} against {} database with blastn".format(query_name, file_basename (self.Blastdb.db_path))),
+
+        # Build the command line string
+        cmd = make_cmd_str(self.blastn, self.blastn_opt)
 
         # Run the command line without stdin and asking only stdout
         blast_lines = run_command(cmd, stdin=None, ret_stderr=False, ret_stdout=True).splitlines()
@@ -84,9 +103,9 @@ class Aligner(object):
             BlastHit(h[0], h[1] , h[2], h[3], h[4], h[5], h[6], h[7], h[8], h[9], h[10], h[11])
 
         # Sumarize the hit count in the different references
-        print ("\t{} hits found in the subject database".format(BlastHit.count_total()))
-        for ref, val in BlastHit.stat_per_ref().items():
-            print ("\t* {} hit(s) in ref {}\t({} pb)".format(val[0], ref, val[1]))
+        print ("\t{} hits found".format(BlastHit.count_total()))
+        #for ref, val in BlastHit.stat_per_ref().items():
+            #print ("\t* {} hit(s) in ref {}\t({} pb)".format(val[0], ref, val[1]))
 
         # Get the list of hits from BlastHit class and reset the class list.
         hits_list = BlastHit.get()
