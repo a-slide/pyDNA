@@ -67,6 +67,7 @@ def align  (R1,
     mem = Aligner(idx, align_opt, aligner)
     print (repr(mem))
     mkdir(align_outdir)
+
     # Align the reference index with R1 fastq (and R2)
     align_path = path.join(align_outdir, align_outname)
     return (mem.align(R1, R2, align_path))

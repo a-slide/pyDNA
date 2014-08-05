@@ -260,7 +260,7 @@ def merge_files (input_list, output=None, compress_output=True):
         for input in input_list:
 
             # In case the file is gzipped
-            if file_extension(input) in ["gz","GZ"]:
+            if file_extension(input).lower() == "gz":
                 infile = gzip.open(input, "rb")
             # In case the file is not compressed
             else:
@@ -365,41 +365,40 @@ def import_seq(filename, col_type="dict", seq_type="fasta"):
         print (E)
         exit()
 
-def count_seq (filename, seq_type="fasta", gziped=False):
+def count_seq (filename, seq_type="fasta"):
     """
     Count the number of sequences in a fastq or a fastq file
     @param filename Path to a valid readeable file
     @param file_type Should be either fastq or fastq. Default fasta
-    @param gziped Boolean indicating if the file is gziped or not. Default False
     """
     #Standard library import
     import gzip
-    from mmap import mmap
 
     # Verify if the file is fasta or fastq type
     assert seq_type in ["fasta", "fastq"], "The file has to be either fastq or fasta format"
 
     # Open the file
-    if gziped:
-        f = gzip.open(filename, "r")
+    if file_extension(filename).lower() == "gz":
+        fp = gzip.open(filename, "rb")
     else:
-        f = open(filename, "r")
+        fp = open(filename, "rb")
+
+    # line no counter
+    nline = 0
 
     # FASTA Find a start line seq character ">" an increment the counter each time
     if seq_type ==  "fasta":
-        nline = 0
-        for line in f:
+        for line in fp:
             if line[0] == ">":
                 nline+=1
-        f.close()
+        fp.close()
         return nline
 
     # FASTQ No motif to find, but 4 lines correspond to 1 sequence
     else:
-        nline = 0
-        for line in f:
+        for line in fp:
             nline+=1
-        f.close()
+        fp.close()
         return nline/4
 
 #~~~~~~~GRAPHICAL UTILIES~~~~~~~#
