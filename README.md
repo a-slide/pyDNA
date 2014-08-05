@@ -1,4 +1,4 @@
-DNA-tools
+pyDNA
 =========
 
-Collection of Utilities and Wrapper for DNA sequence manipulation
+Collection of python Utilities and Wrapper for DNA / NGS data manipulation
