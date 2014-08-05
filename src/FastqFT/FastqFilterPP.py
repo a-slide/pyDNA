@@ -1,12 +1,9 @@
-# TO DO = CORRECT HUGE MEMORY LEAK !!!
-
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
 #~~~~~~~GLOBAL IMPORTS~~~~~~~#
 # Standard library packages import
 from multiprocessing import Value, Process, Queue, cpu_count
-from sys import argv
 from time import time
 import gzip
 from os import path
@@ -15,7 +12,7 @@ from os import path
 from Bio import SeqIO
 
 # Local Package import
-from Utilities import file_basename
+from Utilities import file_basename, count_seq
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 class FastqFilterPP(object):
@@ -57,14 +54,13 @@ class FastqFilterPP(object):
     def __str__(self):
         return "<Instance of {} from {} >\n".format(self.__class__.__name__, self.__module__)
 
-
     def __init__(self, R1, R2, quality_filter=None, adapter_trimmer=None, outdir="./fastq/", input_qual="fastq-sanger", numprocs=None):
         """
         """
         # Start a timer
         start_time = time()
 
-        # Store file path in object variables
+        # Create object variables
         self.numprocs = numprocs if numprocs else cpu_count()
         self.qual = quality_filter
         self.adapt = adapter_trimmer
@@ -91,9 +87,16 @@ class FastqFilterPP(object):
             self.len_pass = Value('i', 0)
             self.len_fail = Value('i', 0)
 
-        # Init queues for input file reading and output file writing
-        self.inq = Queue()
-        self.outq = Queue()
+        # Count lines in fastq file to prepare a counter of progression
+        print ("Count the number of fastq sequences")
+        self.nseq = count_seq(R1, "fastq")
+        print("fastq files contain {} sequences to align".format(self.nseq))
+        self.nseq_list = [int(self.nseq*i/100.0) for i in range(5,101,5)] # 5 percent steps
+
+        print ("Processing fastq files")
+        # Init queues for input file reading and output file writing (limited to 10 000 objects)
+        self.inq = Queue(maxsize=10000)
+        self.outq = Queue(maxsize=10000)
 
         # Init processes for file reading, distributed filtering and file writing
         self.pin = Process(target=self.reader, args=())
@@ -108,10 +111,12 @@ class FastqFilterPP(object):
 
         # Blocks until the process it is terminates
         self.pin.join()
+        print ("\tReading done")
         for i in range(len(self.ps)):
             self.ps[i].join()
-            print "Done process {}".format(i)
+        print ("\tFiltering done")
         self.pout.join()
+        print ("\tWriting done")
 
         self.exec_time = time()-start_time
 
@@ -136,15 +141,21 @@ class FastqFilterPP(object):
             print E
             exit
 
+        # Progression counter
+        i = 0
+
         while True:
             # Parse sequences in generators until one of then is empty
             seqR1 = next(genR1, None)
             seqR2 = next(genR2, None)
             if not seqR1 or not seqR2:
                 break
-
             # Add a tuple position, seqR1 and seqR2 to the end of the queue
             self.inq.put( (seqR1, seqR2) )
+
+            i+=1
+            if i in self.nseq_list:
+                print ("\t{} sequences: {}%".format(i, int(i*100.0/self.nseq)))
 
         # Close files
         in_R1.close()
@@ -193,7 +204,7 @@ class FastqFilterPP(object):
         # Add a STOP pill to the queue
         self.outq.put("STOP")
 
-        # Fill shared memomry counters from process specific object instances.
+        # Fill shared memomory counters from process specific object instances.
         if self.qual:
             with self.weighted_mean.get_lock():
                 self.weighted_mean.value += (self.qual.get_mean_qual()*self.qual.get_tot_seq())
@@ -226,21 +237,16 @@ class FastqFilterPP(object):
         out_R2 = gzip.open(self.R2_out, "w")
 
         # Keep running until all numprocs STOP pills has been passed
-        i=0
         for works in range(self.numprocs):
             # Will exit the loop as soon as a Stop pill will be found
             for seqR1, seqR2 in iter(self.outq.get, "STOP"):
                 out_R1.write(seqR1.format("fastq-sanger"))
                 out_R2.write(seqR2.format("fastq-sanger"))
 
-                i+=1
-                if i%100000 == 0:
-                    print ("\t{} sequences processed".format(i))
-
         out_R1.close()
         out_R2.close()
 
 
-
+# Required by multiprocessing
 if __name__ == '__main__':
     pass
