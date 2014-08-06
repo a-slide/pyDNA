@@ -27,9 +27,16 @@ class BlastHit(object):
     #~~~~~~~CLASS FIELDS~~~~~~~#
 
     Instances = [] # Class field used for instance tracking
+    id_count = 0
 
     #~~~~~~~CLASS METHODS~~~~~~~#
-
+    
+    @ classmethod
+    def next_id (self):
+        cur_id = self.id_count
+        self.id_count +=1
+        return cur_id
+    
     @ classmethod
     def count_total (self):
         """
@@ -72,6 +79,7 @@ class BlastHit(object):
         Reset the instance tracking list (Usefull after
         """
         self.Instances = []
+        self.id_count = 0
 
     #~~~~~~~FONDAMENTAL METHODS~~~~~~~#
 
@@ -92,6 +100,8 @@ class BlastHit(object):
         @param  evalue  E value of the alignement
         @param  bscore Bit score of the alignement
         """
+        
+        self.id = self.next_id()
         self.q_id = q_id
         self.s_id = s_id
         self.identity = float(identity)
@@ -115,7 +125,7 @@ class BlastHit(object):
         self.Instances.append(self)
 
     def __repr__(self):
-        msg = "{}".format(self.__str__())
+        msg = "HIT {}".format(self.id)
         msg += "\tQuery\t{}:{}-{}({})\n".format(self.q_id, self.q_start, self.q_end, "+" if self.q_orient else "-")
         msg += "\tSubject\t{}:{}-{}({})\n".format(self.s_id, self.s_start, self.s_end, "+" if self.q_orient else "-")
         msg += "\tLenght : {}\tIdentity : {}%\tEvalue : {}\tBit score : {}\n".format(self.length, self.identity, self.evalue, self.bscore)

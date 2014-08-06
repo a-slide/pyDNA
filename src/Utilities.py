@@ -169,6 +169,40 @@ def fgunzip(in_path, out_path=None):
             except OSError:
                 print "Can't remove {}".format(out_path)
 
+def expand_file (fp, outdir="./", copy_ungz=False):
+    """
+    Iterate over a list of files and expand files in outdir if the files are gzipped
+    Else the file won't be modified and won't be moved from it's current directory
+    @param fp Path to a file eventually gzipped
+    @param outdir Path of the directory in which to uncompress or copy the files
+    @param copy_ungz Copy uncompressed file in the outdir without modification
+    @return A path to an uncompressed file
+    """
+    # Function specific imports
+    from os import path, link
+    from shutil import copy
+
+    assert path.isfile(fp), "{} is not a valid file".format(fp)
+
+    # Extract if gziped
+    if fp[-2:].lower() == "gz":
+        out_path = path.join (outdir, file_name(fp)[:-3])
+        fgunzip (fp, out_path)
+
+    # Copy to the outdir if requested
+    elif copy_ungz :
+        out_path = path.join (outdir, file_name(fp))
+        # try to create a hard link else just recopy
+        try:
+            link(fp, out_path)
+        except Exception:
+            print ('link failed')
+            copyFile(fp, outdir)
+    else:
+        out_path = file_name(fp)
+    
+    return path.abspath(out_path)
+
 def expand_filelist (file_list, outdir="./", copy_ungz=False):
     """
     Iterate over a list of files and expand files in outdir if the files are gzipped
@@ -186,30 +220,7 @@ def expand_filelist (file_list, outdir="./", copy_ungz=False):
     new_file_list = []
 
     for fp in file_list:
-        assert path.isfile(fp), "{} is not a valid file".format(fp)
-
-        # Extract if gziped
-        if fp[-2:].lower() == "gz":
-            out_path = path.join (outdir, file_name(fp)[:-3])
-            fgunzip (fp, out_path)
-            new_file_list.append (path.abspath(out_path))
-
-        # Copy to the outdir if requested
-        elif copy_ungz :
-            out_path = path.join (outdir, file_name(fp))
-            # try to create a hard link else just recopy
-            try:
-                link(fp, out_path)
-            except Exception:
-                print ('link failed')
-                copyFile(fp, outdir)
-                out_path = path.join (outdir, file_name(fp))
-            new_file_list.append(path.abspath(out_path))
-
-        # Else just add to the new list
-        else:
-            new_file_list.append(path.abspath(fp))
-
+        new_file_list.append(expand_file(fp, outdir, copy_ungz))
     return new_file_list
 
 def mkdir(fp):

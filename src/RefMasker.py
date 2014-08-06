@@ -37,10 +37,11 @@ def mask (  subject_fasta,
         a = hit_list[0].s_start
         a = hit_list[0].s_end
 
-    except (IndexError, AttributeError) as E:
-        print (E)
-        print ("The hit_list does not contain suitable hit objects or is empty")
-        print ("The subject fasta file will not be edited")
+    except IndexError:
+        print ("No hit found, The subject fasta file will not be edited")
+        return subject_fasta
+    except AttributeError as E:
+        print ("The list provided does not contain suitable hit object, The subject fasta file will not be edited")
         return subject_fasta
 
     # Initialize output folder
@@ -64,14 +65,12 @@ def mask (  subject_fasta,
     id_list = {hit.s_id:0 for hit in hit_list}.keys()
 
     # Iterate over record in the subject fasta file
-    print ("\nMasking hit positions and writting a new reference".format(
-        file_basename (subject_fasta)))
-    # Iterate over record in the subject fasta file
+    print ("Masking hit positions and writting a new reference for {} ".format(ref_outname))
     i=j=0
     start_time = time()
     for record in SeqIO.parse(in_handle, "fasta"):
         # Progress Marker
-        stdout.write(".")
+        stdout.write("*")
         stdout.flush()
 
         # Check if the record is in the list of record to modify
@@ -94,11 +93,9 @@ def mask (  subject_fasta,
 
         # Finally write the sequence modified or not
         out_handle.write(record.format("fasta"))
-
+    print("")    
     # Report informations
-    print("\nNew reference file {} created".format(ref_outname))
-    print("{} Sequence processed of which {} sequences modified".format(i+j,i))
-    print("Execution time : {}s\n".format(round(time()-start_time),2))
+    print("{} sequence(s) from {} modified in {}s".format(i,ref_outname, round(time()-start_time),2))
 
     # Close files and return the masked ref path
     in_handle.close()

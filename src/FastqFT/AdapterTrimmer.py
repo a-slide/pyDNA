@@ -14,7 +14,7 @@ class AdapterTrimmer(object):
     #~~~~~~~FONDAMENTAL METHODS~~~~~~~#
 
     def __repr__(self):
-        msg = self.__str__()
+        msg = "ADAPTER TRIMMER\n"
         msg += "  List of adapters imported for trimming"
 
         for a in self.adapter_list:

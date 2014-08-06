@@ -13,7 +13,7 @@ class QualityFilter(object):
     #~~~~~~~FONDAMENTAL METHODS~~~~~~~#
 
     def __repr__(self):
-        msg = self.__str__()
+        msg = "QUALITY FILTER\n"
         msg += "\tQuality Threshold : {}\n".format(self.min_qual)
         if self.run:
             msg += "\tTotal sequences : {}\n".format(self.total)

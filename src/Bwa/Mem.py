@@ -16,11 +16,11 @@ def align  (R1,
             ref_index = None,
             ref_fasta = None,
             aligner = "bwa mem",
-            align_opt=None,
+            align_opt="",
             align_outdir= "./bwa_align/",
             align_outname= "out.sam",
             indexer = "bwa index",
-            index_opt=None,
+            index_opt="",
             index_outdir = "./bwa_index/",
             index_outname = "out"):
     """
@@ -33,11 +33,11 @@ def align  (R1,
     @param ref_index Index files basename if available
     @param ref_fasta Reference fasta file. Required if no ref_index is given  (can be gzipped)
     @param aligner Path ot the bwa mem executable. Not required if bwa if added to your path
-    @param align_opt Bwa mem dictionnary of option arguments (see Utilities.make_cmd_str)
+    @param align_opt Bwa mem command line options as a string
     @param align_outdir Directory where to store the sam file
     @param align_outname Name of the output sam file
     @param indexer Path ot the bwa index executable. Not required if bwa if added to your path
-    @param index_opt Bwa index dictionnary of option arguments (see Utilities.make_cmd_str)
+    @param index_opt Bwa index command line options as a string
     @param index_outdir Directory where to store the index files
     @param index_outname Basename of the index file
     @return Path of the output sam file
@@ -65,7 +65,7 @@ def align  (R1,
 
     # Create a Aligner object
     mem = Aligner(idx, align_opt, aligner)
-    print (repr(mem))
+    #~print (repr(mem))
     mkdir(align_outdir)
 
     # Align the reference index with R1 fastq (and R2)

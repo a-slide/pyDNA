@@ -18,18 +18,16 @@ class NewIndex(object):
     #~~~~~~~FONDAMENTAL METHODS~~~~~~~#
 
     def __repr__(self):
-        msg = self.__str__()
+        msg = "BWA INDEX WRAPPER (NEW INDEX)\n"
         msg += "bwa index path : {}\n".format(self.indexer)
         msg += "Blastn database path : {}\n".format(self.index_path)
-        msg += "Options :\n"
-        for i, j in self.index_opt.items():
-            msg += "\tFlag : {}\tValue : {}\n".format(i,j)
+        msg += "Options : {}\n".format(self.index_opt)
         return msg
 
     def __str__(self):
         return "\n<Instance of {} from {} >\n".format(self.__class__.__name__, self.__module__)
 
-    def __init__ (self, ref_path, index_path="./out.idx", index_opt=None, bwa_index = "bwa index"):
+    def __init__ (self, ref_path, index_path="./out.idx", index_opt="", bwa_index = "bwa index"):
         """
         Initialize the object and index the reference genome if necessary
         @param ref_path Path of the fasta file containing the reference sequence
@@ -44,13 +42,9 @@ class NewIndex(object):
         self.index_path = index_path
         self.ref_path = ref_path
 
-        # init an option dict and attribute defaut options
-        self.index_opt = index_opt if index_opt else {}
-        if "a" not in self.index_opt:
-            self.index_opt["a"] = "bwtsw"
-        if "p" not in self.index_opt:
-            self.index_opt["p"] = index_path
-
+        # init an option string and attribute defaut options
+        self.index_opt = "{} -a {} -p {}".format (index_opt, "bwtsw", self.index_path)
+        
         # Make a db with makeblastdb if not possible = remove the files
         try:
             self._make_index()
@@ -66,11 +60,10 @@ class NewIndex(object):
         """
         Create a bwa index from ref_path using bwa index
         """
-        # Build the command line thanks to make_cmd_str
-        opt_list = [self.ref_path]
-        cmd = make_cmd_str(self.indexer, self.index_opt, opt_list)
+        # Build the command line
+        cmd = "{} {} {}".format(self.indexer, self.index_opt, self.ref_path)
+        
         print "Creating a BWA index for {}".format(file_basename(self.ref_path))
-
 
         # Run the command line without stdin and asking both stdout and stderr
         start_time = time()
@@ -104,7 +97,7 @@ class ExistingIndex(object):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
     def __repr__(self):
-        msg = self.__str__()
+        msg = "BWA INDEX WRAPPER (EXISTING INDEX)\n"
         msg += "Bwa Index Path : {}\n".format(self.index_path)
         return msg
 

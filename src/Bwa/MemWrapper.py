@@ -20,39 +20,31 @@ class Aligner(object):
     #~~~~~~~FONDAMENTAL METHODS~~~~~~~#
 
     def __repr__(self):
-        msg = self.__str__()
+        msg = "BWA MEM WRAPPER\n"
         msg += "Bwa mem path : {}\n".format(self.aligner)
-        msg += "Options :\n"
-        for i, j in self.align_opt.items():
-            msg += "\tFlag : {}\tValue : {}\n".format(i,j)
-        msg += "BwaIndex : {}\n".format(repr(self.Index))
+        msg += "Options : {}\n".format(self.align_opt)
+        msg += repr(self.Index)
         return msg
 
     def __str__(self):
         return "<Instance of {} from {} >\n".format(self.__class__.__name__, self.__module__)
 
-    def __init__ (self, Index, align_opt=None, aligner = "bwa mem"):
+    def __init__ (self, Index, align_opt="", aligner = "bwa mem"):
         """
         Initialize the object and index the reference genome if necessary
         @param Index Bwa index object NewIndex or ExistingIndex
-        @param align_opt Bwa mem dictionnary of option arguments such as "-t 5". The option flag
-        have to be the key (without "-") and the the option value in the dictionnary value. If no
-        value is requested after the option flag "None" had to be asigned to the value field.
+        @param align_opt Bwa mem command line options as a string
         @param bwa_mem Path ot the bwa mem executable. Not required if bwa if added to your path
         """
         # Creating object variables
         self.aligner = aligner
         self.Index = Index
-        self.align_opt = align_opt if align_opt else {}
-
-        # By default the option t (number of thread to use) is setted to the max number of
-        # available threads
-        if "t" not in self.align_opt:
-            self.align_opt["t"] = cpu_count()
+        # By default the option t is setted to the max number of available threads
+        self.align_opt = "{} -t {}".format(align_opt, cpu_count())
 
     #~~~~~~~PUBLIC METHODS~~~~~~~#
 
-    def align(self, R1_path, R2_path=None, out_path="./out.sam"):
+    def align(self, R1_path, R2_path="", out_path="./out.sam"):
         """
         Align query fastq against a subject database and return a list of BlastHit object
         @param R1_path Path to the file containing fastq sequences
@@ -61,19 +53,20 @@ class Aligner(object):
         @return A list of BlastHit objects if at least one hit was found
         @exception (SystemError,OSerror) May be returned by run_command in case of invalid command line.
         """
-        # Build the command line with make_cmd_str
-        # Pair end mode
-        if R2_path:
-            opt_list = [self.Index.index_path, R1_path, R2_path, "> "+out_path]
-        # Single end mode
-        else:
-            opt_list = [self.Index.index_path, R1_path, "> "+out_path]
-        cmd = make_cmd_str(self.aligner, self.align_opt, opt_list)
+        # Build the command line
+        cmd = "{} {} {} {} {} {} ".format(
+            self.aligner,
+            self.align_opt,
+            self.Index.index_path,
+            R1_path,
+            R2_path,
+            "> "+out_path)
 
         # Execute bwa mem (Can raise a SystemError) and verify if stdout is not None
         print ("Align against {} index with bwa mem".format(file_basename (self.Index.index_path)))
-        stderr = run_command(cmd, stdin=None, ret_stderr=True, ret_stdout=False)
-
-        # In bwa stderr return a report of alignment
-        print (stderr)
+        stderr_list = run_command(cmd, stdin=None, ret_stderr=True, ret_stdout=False).split("\n")
+        
+        # In bwa stderr return a report of alignment just print the most important one
+        print(stderr_list[0])
+        print("\n".join(stderr_list[-4:]))
         return out_path
