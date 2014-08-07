@@ -12,9 +12,9 @@ from Utilities import mkdir
 #~~~~~~~MAIN METHODS~~~~~~~#
 
 def align  (R1,
-            R2=None,
-            ref_index = None,
-            ref_fasta = None,
+            R2='',
+            index = '',
+            ref = '',
             aligner = "bwa mem",
             align_opt="",
             align_outdir= "./bwa_align/",
@@ -30,8 +30,10 @@ def align  (R1,
     and ref_fasta are not required.
     @param R1 Path to the file containing fastq sequences (can be gzipped)
     @param R2 Facultative path to the file containing paired fastq sequence (can be gzipped)
-    @param ref_index Index files basename if available
-    @param ref_fasta Reference fasta file. Required if no ref_index is given  (can be gzipped)
+    @param index Index files basename if available
+    @param ref Path of the fasta file containing the reference sequence (can be gzipped)
+    This parameter can also be a list of fasta file (gzipped or not) in this case all references
+    will be merged into a single fasta reference
     @param aligner Path ot the bwa mem executable. Not required if bwa if added to your path
     @param align_opt Bwa mem command line options as a string
     @param align_outdir Directory where to store the sam file
@@ -44,24 +46,24 @@ def align  (R1,
     """
     # Try to import an existing index
     try:
-        if not ref_index:
+        if not index:
             raise Exception("No index provided")
 
         print("Existing index provided")
-        idx = ExistingIndex(ref_index)
+        idx = ExistingIndex(index)
 
     # If no index or if an error occured during validation of the existing index = create a new one
     except Exception as E:
         print (E)
 
         # Verify the presence of the reference fasta file
-        if not ref_fasta or not path.isfile (ref_fasta):
+        if not ref:
             raise Exception("Invalid or no fasta file provided. Cannot create an index")
 
         print("Generating index...")
         mkdir(index_outdir)
         index_path = path.join(index_outdir, index_outname)
-        idx = NewIndex(ref_fasta, index_path, index_opt, indexer)
+        idx = NewIndex(ref, index_path, index_opt, indexer)
 
     # Create a Aligner object
     mem = Aligner(idx, align_opt, aligner)

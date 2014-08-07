@@ -140,10 +140,10 @@ class FastqFilterPP(object):
             self.ps[i].join()
         print ("\tFiltering done")
         self.pout.join()
-        print ("\tWriting done")
+        print ("\tWriting done\n")
         
         # Stop timer and store the value
-        self.exec_time = time()-start_time
+        self.exec_time = round(time()-start_time, 3)
 
     #~~~~~~~PRIVATE METHODS~~~~~~~#
 

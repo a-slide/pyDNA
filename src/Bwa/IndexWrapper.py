@@ -4,7 +4,7 @@ from os import path, remove
 from time import time
 
 # Local library packages
-from Utilities import run_command, file_basename, make_cmd_str
+from Utilities import run_command, file_basename, make_cmd_str, merge_files
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 class NewIndex(object):
@@ -27,10 +27,12 @@ class NewIndex(object):
     def __str__(self):
         return "\n<Instance of {} from {} >\n".format(self.__class__.__name__, self.__module__)
 
-    def __init__ (self, ref_path, index_path="./out.idx", index_opt="", bwa_index = "bwa index"):
+    def __init__ (self, ref, index_path="./out.idx", index_opt="", bwa_index = "bwa index"):
         """
         Initialize the object and index the reference genome if necessary
-        @param ref_path Path of the fasta file containing the reference sequence
+        @param ref Path of the fasta file containing the reference sequence (can be gzipped)
+        This parameter can also be a list of fasta file (gzipped or not) in this case all references
+        will be merged into a single fasta reference
         @param index_path Outname for the bwa index files basename.
         @param index_opt bwa index dictionnary of option arguments such as "-t 5". The option flag
         have to be the key (without "-") and the the option value in the dictionnary value. If no
@@ -40,30 +42,36 @@ class NewIndex(object):
         # Creating object variables
         self.indexer = bwa_index
         self.index_path = index_path
-        self.ref_path = ref_path
-
-        # init an option string and attribute defaut options
         self.index_opt = "{} -a {} -p {}".format (index_opt, "bwtsw", self.index_path)
         
-        # Make a db with makeblastdb if not possible = remove the files
         try:
-            self._make_index()
+            # If only one ref = use it directly to make an index
+            if isinstance(ref, str):
+                self.ref = ref
+                self._make_index()
+            # If severel references, merged them, make index and remove the merged reference file 
+            elif isinstance(ref, list):
+                print("Merge references files for indexation")
+                self.ref = merge_files(ref, outpath=self.index_path, compress_output=False)
+                self._make_index()
+                remove (self.index_path)
+            else:
+                raise TypeError, "ref variable is neither a list nor a string" 
 
         except Exception as E:
             self._remove_index_files()
             raise Exception (E.message+"Impossible to generate a valid index from the reference sequence")
 
-
     #~~~~~~~PRIVATE METHODS~~~~~~~#
 
     def _make_index(self):
         """
-        Create a bwa index from ref_path using bwa index
+        Create a bwa index from ref using bwa index
         """
         # Build the command line
-        cmd = "{} {} {}".format(self.indexer, self.index_opt, self.ref_path)
+        cmd = "{} {} {}".format(self.indexer, self.index_opt, self.ref)
         
-        print "Creating a BWA index for {}".format(file_basename(self.ref_path))
+        print "Creating a BWA index"
 
         # Run the command line without stdin and asking both stdout and stderr
         start_time = time()
@@ -74,9 +82,9 @@ class NewIndex(object):
             raise Exception ("Error, no data received from standard output\n"+stderr)
 
         print (stdout)
-        print ("Index created in {}s".format(round(time()-start_time, 3)))
+        print ("Index created in {}s\n".format(round(time()-start_time, 3)))
 
-    def _remove_db_files(self):
+    def _remove_index_files(self):
         """
         Remove index files in case of exception during indexing
         """

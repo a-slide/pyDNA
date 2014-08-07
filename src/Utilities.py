@@ -241,56 +241,58 @@ def mkdir(fp):
         #print ("Creating '{}' in the current directory".format(fp))
         mkdir(fp)
 
-def merge_files (input_list, output=None, compress_output=True):
+def merge_files (inpath_list, outpath="out", compress_output=True, bufsize = 100000):
     """
+    Merge a list of text file (gzip or not) in a single file taht can be compress or not
     @param input_list List of files to merge
-    @param output Destination file
+    @param outpath Destination file
+    @param compress_output Gzip the output file. Slower if true 
+    @param bufline Size of the output file write buffer in line (positive integer)
+    @return path of the output merged file
     """
     # Standard library import
     import gzip
-    from os.path import getsize, isfile, abspath
-    from tempfile import mkstemp
-
+    from sys import stdout
+    from os import path
+    from time import time
+    
+    stime = time()
     # Creating and storing a file for writting output
-    if not output:
-        if compress_output:
-            OSlevel, output = mkstemp(suffix=".gz")
-        else:
-            OSlevel, output = mkstemp()
-    else:
-        output = abspath(output)
-
-    try:
-        # Opening the outpout file for writting
-        if compress_output:
-            outfile = gzip.open(output, "wb")
-        else:
-            outfile = open(output, "wb")
-
-        # For all files in the input list
-        for input in input_list:
-
-            # In case the file is gzipped
-            if file_extension(input).lower() == "gz":
-                infile = gzip.open(input, "rb")
-            # In case the file is not compressed
-            else:
-                infile = open(input, "rb")
-
-            # writting infile in outfile
-            outfile.write(infile.read())
-            infile.close()
-
-        # Close and verify the output file
-        outfile.close()
-        assert isfile(output), "No output file found"
-        assert getsize(output) > 0, "The output file is empty"
-
-    except (IOError,AssertionError)  as E:
-        print(E)
-        exit()
-
-    return output
+    outpath = path.abspath(outpath)+".gz" if compress_output else path.abspath(outpath)
+    openout = gzip.open if compress_output else open
+    
+    with openout(outpath, "wb") as out_handle:
+        # Iterate over files in the input list
+        for inpath in inpath_list:
+            
+            # Open according to the compression 
+            openin = gzip.open if file_extension(inpath) == "gz" else open
+            with openin (inpath, "rb") as in_handle:
+                stdout.write("\t+ {}  ".format(file_name(inpath)))
+                stdout.flush()
+                
+                # Init a line counter and a text buffer 
+                lineno = 0
+                linebuf = ""
+                
+                # Store line in the buffer until the line size is full then flush in out_handle
+                for line in in_handle:
+                    lineno += 1
+                    linebuf += line
+                    if lineno % bufsize == 0:
+                        out_handle.write(linebuf)
+                        linebuf = ""
+                    if lineno % 1000000 == 0:
+                        stdout.write("*")
+                        stdout.flush()
+                        
+                # Flush the remaining lines in the buffer 
+                stdout.write("*\n")
+                stdout.flush()
+                out_handle.write(linebuf)
+            
+    print ("{} files merged in {}s\n".format (len(inpath_list), round(time()-stime,3)))
+    return outpath
 
 def file_basename (path):
     """
@@ -302,9 +304,9 @@ def file_basename (path):
 def file_extension (path):
     """
     Return the extension of a file.
-    @param path Filepath as a string
+    @param path Filepath as a string in lowercase
     """
-    return path.rpartition(".")[2]
+    return path.rpartition(".")[2].lower()
 
 def file_name (path):
     """
@@ -350,7 +352,7 @@ def import_seq(filename, col_type="dict", seq_type="fasta"):
         assert col_type  in allowed_types, "The output collection type have to be in the following list : "+ ", ".join(allowed_types)
 
         # Open gzipped or uncompressed file
-        if file_extension(filename).lower() == "gz":
+        if file_extension(filename) == "gz":
             #print("\tUncompressing and extracting data")
             handle = gzip.open(filename, "r")
         else:
@@ -389,7 +391,7 @@ def count_seq (filename, seq_type="fasta"):
     assert seq_type in ["fasta", "fastq"], "The file has to be either fastq or fasta format"
 
     # Open the file
-    if file_extension(filename).lower() == "gz":
+    if file_extension(filename) == "gz":
         fp = gzip.open(filename, "rb")
     else:
         fp = open(filename, "rb")
