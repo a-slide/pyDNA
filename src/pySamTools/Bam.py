@@ -23,25 +23,43 @@ class BamMaker(object):
         @param make_sam If true a sam file will be generated in addition to the bam file
         """
         # Creating object variables
-        self.make_index = make_index
-        self.make_sam = make_sam
         self.sort = sort
+        
+        self.make_bam = make_bam
         self.bam = ""
+        
+        self.make_index = make_index
         self.bai = ""
         
+        self.make_sam = make_sam
+        self.sam = ""
+        
     def __repr__(self):
-        msg = "BAM MAKER\n"
-        msg+= "Create Bam index : {}\n".format(self.make_index)
-        msg+= "Create Sam file : {}\n".format(self.make_sam)
-        msg+= "Sort reads : {}\n".format(self.sort)
-        if self.bam:
-            msg+= "Bam file : {}\n".format(self.bam)
-        if self.bai:
-            msg+= "Bam index file : {}\n".format(self.bai)
+        msg = "\tBAM MAKER\n"
+        
+        if not self.make_bam and not self.make_sam:
+            msg += "\t\tNo output requested\n"
+            return msg
+        
+        msg+= "\t\tSort reads : {}\n".format(str(self.sort))
+        msg+= "\t\tOutput requested :"
+        if self.make_bam:
+            msg+= "\tBam"
+        if self.make_index:
+            msg+= "\tBam_Index"
+        if self.make_sam:
+            msg+= "\tSam"
+        msg+= "\n"
         return msg
-
+        
     def __str__(self):
         return "\n<Instance of {} from {} >\n".format(self.__class__.__name__, self.__module__)
+        
+    def get(self, key):
+        return self.__dict__[key]
+
+    def set(self, key, value):
+        self.__dict__[key] = value
         
     #~~~~~~~PUBLIC METHODS~~~~~~~#
 
@@ -54,6 +72,10 @@ class BamMaker(object):
         reads can be provided but in this case no sorting will be performed.
         @param outpath Basename of the path where to output files
         """
+        
+        if not self.make_bam and not self.make_sam:
+            print ("\tNo bam/sam/bai files to be generated")
+            return
         
         # Sort the reads if a dictionnary was given and self.sort is true 
         if type(read_col) == dict:

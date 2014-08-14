@@ -240,6 +240,7 @@ def mkdir(fp):
     else:
         #print ("Creating '{}' in the current directory".format(fp))
         mkdir(fp)
+        return fp
 
 def merge_files (inpath_list, outpath="out", compress_output=True, bufsize = 100000):
     """

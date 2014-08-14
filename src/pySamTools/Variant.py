@@ -7,7 +7,7 @@ import csv
 import pysam
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-class PileUpMaker (object):
+class VariantMaker (object):
     """
     Class a generating a coverage graph from a dictionnary of coverage list indexed by sequence name
     """
@@ -15,7 +15,7 @@ class PileUpMaker (object):
 
     #~~~~~~~FONDAMENTAL METHODS~~~~~~~#
 
-    def __init__ (self, min_depth=1000, min_freq=0.02):
+    def __init__ (self, min_depth=1000, min_freq=0.02, make_freqvar=True):
         """
         Create a PileUpMaker object
         @param min_depth Minimal depth to search for variations. Else the position will be ignored
@@ -25,24 +25,50 @@ class PileUpMaker (object):
         # Creating object variables
         self.min_depth = min_depth
         self.min_freq = min_freq
-        self.PileUp = ""
+        
+        self.make_freqvar = make_freqvar
+        self.freqvar = ""
         
     def __repr__(self):
-        msg = "PILEUP MAKER\n"
-        msg+= "Minimal depth of positions : {}\n".format(self.min_depth)
-        msg+= "Mimimal frequency of 'frequent' bases: {}\n".format(self.min_freq)
+        msg = "\tVARIANT MAKER\n"
+        if not self.make_freqvar:
+            msg += "\t\tNo output requested\n"
+            return msg
+        
+        msg+= "\t\tMinimal depth : {}\n".format(self.min_depth)
+        msg+= "\t\tMimimal frequency : {}\n".format(self.min_freq)
+        msg+= "\t\tOutput requested :"
+        if self.make_freqvar:
+            msg+= "\tFrequent_Variants_Report"
+        msg+= "\n"
+        return msg
+        
         return msg
 
     def __str__(self):
         return "\n<Instance of {} from {} >\n".format(self.__class__.__name__, self.__module__)
         
+    def get(self, key):
+        return self.__dict__[key]
+
+    def set(self, key, value):
+        self.__dict__[key] = value
+
     #~~~~~~~PUBLIC METHODS~~~~~~~#
 
     def make (self, bam_path, outpath="./out", ref_name = "ref"):
         """
         """
+        if not self.make_freqvar:
+            return
         
-        print ("\tCreate a pileUp file...")
+        if self.make_freqvar:
+            print ("\tCreate a pileUp file...")
+            self._make_freqvar(bam_path, outpath, ref_name)
+        
+        
+    def _make_freqvar (self, bam_path, outpath="./out", ref_name = "ref"):
+        
         # Create a list and for results collecting
         out_list =[]
         
@@ -89,8 +115,8 @@ class PileUpMaker (object):
 
         # Create a file to write out the list if results were found
         if out_list:
-            self.PileUp =  "{}_{}_pileup.csv".format(outpath, ref_name)
-            with open(self.PileUp, 'wb') as csvfile:
+            self.freqvar =  "{}_{}_pileup.csv".format(outpath, ref_name)
+            with open(self.freqvar, 'wb') as csvfile:
                 writer = csv.writer(csvfile, delimiter='\t', quoting=csv.QUOTE_MINIMAL)
                 writer.writerow(["Ref","Seq","Pos","Total","CountA","CountT","CountC","CountG",
                     "CountN", "CountDel","FreqA","FreqT","FreqC","FreqG","FreqN","FreqDel"])
@@ -101,10 +127,9 @@ class PileUpMaker (object):
             print("\t  No frequent variation found")
     
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-class PileUpDecoy(object):
+class VariantUpDecoy(object):
     """
-    @class PileUpDecoy
-    @brief Decoy class implementing no behaviour
+    Decoy class implementing no behaviour
     """
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
@@ -115,7 +140,7 @@ class PileUpDecoy(object):
         pass
 
     def __repr__(self):
-        msg = "PILEUP DECOY\n"
+        msg = "VARIANT DECOY\n"
         return msg
 
     def __str__(self):

@@ -9,4 +9,4 @@
 * [Github](https://github.com/a-slide)
 * [Atlantic Gene Therapies - INSERM 1089] (http://www.atlantic-gene-therapies.fr/)
 """
-__all__ = ["Bam", "Sam", "Covgraph", "Bedgraph", "Fasta", "Fastq", "Pileup"]
+__all__ = ["Bam", "Coverage", "Variant"]
