@@ -200,7 +200,7 @@ def expand_file (fp, outdir="./", copy_ungz=False):
             copyFile(fp, outdir)
     else:
         out_path = file_name(fp)
-    
+
     return path.abspath(out_path)
 
 def expand_filelist (file_list, outdir="./", copy_ungz=False):
@@ -236,7 +236,7 @@ def mkdir(fp):
 
     if path.exists(fp) and path.isdir(fp):
         #print ("'{}' already exist in the current directory".format(fp))
-        pass
+        return fp
     else:
         #print ("Creating '{}' in the current directory".format(fp))
         mkdir(fp)
@@ -247,7 +247,7 @@ def merge_files (inpath_list, outpath="out", compress_output=True, bufsize = 100
     Merge a list of text file (gzip or not) in a single file taht can be compress or not
     @param input_list List of files to merge
     @param outpath Destination file
-    @param compress_output Gzip the output file. Slower if true 
+    @param compress_output Gzip the output file. Slower if true
     @param bufline Size of the output file write buffer in line (positive integer)
     @return path of the output merged file
     """
@@ -256,26 +256,26 @@ def merge_files (inpath_list, outpath="out", compress_output=True, bufsize = 100
     from sys import stdout
     from os import path
     from time import time
-    
+
     stime = time()
     # Creating and storing a file for writting output
     outpath = path.abspath(outpath)+".gz" if compress_output else path.abspath(outpath)
     openout = gzip.open if compress_output else open
-    
+
     with openout(outpath, "wb") as out_handle:
         # Iterate over files in the input list
         for inpath in inpath_list:
-            
-            # Open according to the compression 
+
+            # Open according to the compression
             openin = gzip.open if file_extension(inpath) == "gz" else open
             with openin (inpath, "rb") as in_handle:
                 stdout.write("\t+ {}  ".format(file_name(inpath)))
                 stdout.flush()
-                
-                # Init a line counter and a text buffer 
+
+                # Init a line counter and a text buffer
                 lineno = 0
                 linebuf = ""
-                
+
                 # Store line in the buffer until the line size is full then flush in out_handle
                 for line in in_handle:
                     lineno += 1
@@ -286,42 +286,51 @@ def merge_files (inpath_list, outpath="out", compress_output=True, bufsize = 100
                     if lineno % 1000000 == 0:
                         stdout.write("*")
                         stdout.flush()
-                        
-                # Flush the remaining lines in the buffer 
+
+                # Flush the remaining lines in the buffer
                 stdout.write("*\n")
                 stdout.flush()
                 out_handle.write(linebuf)
-            
+
     print ("{} files merged in {}s\n".format (len(inpath_list), round(time()-stime,3)))
     return outpath
 
 def file_basename (path):
     """
-    Return the basename of a file without folder location and extension
     @param path Filepath as a string
+    @return The basename of a file without folder location and extension
     """
     return path.rpartition('/')[2].partition('.')[0]
 
 def file_extension (path):
     """
-    Return the extension of a file.
-    @param path Filepath as a string in lowercase
+    @param path Filepath as a string
+    @return The extension of a file in lowercase
     """
     return path.rpartition(".")[2].lower()
 
 def file_name (path):
     """
-    Return the complete name of a file with the extension but without folder location
     @param path Filepath as a string
+    @return The complete name of a file with the extension but without folder location
     """
     return path.rpartition("/")[2]
 
 def dir_name (path):
     """
-    Return the complete path where is located the file without the file name
     @param path Filepath as a string
+    @return The complete path where is located the file without the file name
     """
     return path.rpartition("/")[0].rpartition("/")[2]
+
+def rm_blank (name, replace=""):
+    """
+    @param name String with blanck spaces
+    @param replace character of replacement for blanks (Default None)
+    @return String with blanks removed and replace. Blanks at extremities are always removed
+    and nor replaced
+    """
+    return replace.join(name.split())
 
 #~~~~~~~SEQUENCE UTILITIES~~~~~~~#
 
@@ -414,6 +423,27 @@ def count_seq (filename, seq_type="fasta"):
             nline+=1
         fp.close()
         return nline/4
+
+def DNA_reverse_comp (sequence, AmbiguousBase=True):
+    """
+    Generate the reverese complementary sequence of a given DNA sequence
+    @param
+    """
+    if AmbiguousBase:
+        compl = {'A':'T','T':'A','G':'C','C':'G','Y':'R','R':'Y','S':'S','W':'W','K':'M','M':'K',
+               'B':'V','V':'B','D':'H','H':'D','N':'N'}
+    else:
+        compl = {'A':'T','T':'A','G':'C','C':'G','N':'N'}
+
+    compl_sequence=""
+    for base in sequence:
+        try:
+            compl_sequence += compl[base.upper()]
+        except KeyError:
+            compl_sequence += 'N'
+
+    return compl_sequence[::-1]
+
 
 #~~~~~~~GRAPHICAL UTILIES~~~~~~~#
 

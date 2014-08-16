@@ -1,16 +1,29 @@
 #~~~~~~~GLOBAL IMPORTS~~~~~~~#
-# Local Package import
-from Utilities import fill_between_graph
+
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 class QualityFilter(object):
     """
-    @class  QualityFilter
-    @brief
+    Simple quality filtering of fastq reads based on the overall quality of reads. If bellow the
+    threshold no read will be returned
     """
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
     #~~~~~~~FONDAMENTAL METHODS~~~~~~~#
+
+    def __init__(self, min_qual):
+        """
+        Simple storage of object variables and counters init
+        """
+        # Init object variables
+        self.min_qual = min_qual
+
+        # Counters
+        self.total = 0
+        self.qual_pass = 0
+        self.qual_fail = 0
+        self.mean_qual = []
+        self.run = False
 
     def __repr__(self):
         msg = "QUALITY FILTER\n"
@@ -27,16 +40,11 @@ class QualityFilter(object):
     def __str__(self):
         return "<Instance of {} from {} >\n".format(self.__class__.__name__, self.__module__)
 
-    def __init__(self, min_qual):
-        """
-        """
-        # Init object variables
-        self.min_qual = min_qual
-        self.total = 0
-        self.qual_pass = 0
-        self.qual_fail = 0
-        self.mean_qual = []
-        self.run = False
+    def get(self, key):
+        return self.__dict__[key]
+
+    def set(self, key, value):
+        self.__dict__[key] = value
 
     #~~~~~~~PUBLIC METHODS~~~~~~~#
 
@@ -60,9 +68,6 @@ class QualityFilter(object):
 
     #~~~~~~~ GETTERS ~~~~~~~#
 
-    def get_mean_list (self):
-        return self.mean_qual
-
     def get_mean_qual (self):
         if len(self.mean_qual) > 0 :
             return sum(self.mean_qual)/float(len(self.mean_qual))
@@ -80,12 +85,3 @@ class QualityFilter(object):
             return max(self.mean_qual)
         else:
             return None
-
-    def get_tot_seq (self):
-            return self.total
-
-    def get_qual_fail (self):
-            return self.qual_fail
-
-    def get_qual_pass (self):
-            return self.qual_pass

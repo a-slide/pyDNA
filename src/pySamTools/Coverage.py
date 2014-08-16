@@ -19,23 +19,23 @@ class CoverageMaker (object):
         """
         # Creating object variables
         self.min_depth = min_depth
-        
+
         self.make_bedgraph = make_bedgraph
         self.bedgraph = ""
-        
+
         self.make_bed = make_bed
         self.bed = ""
 
         self.make_covgraph = make_covgraph
         self.covgraph_list = []
-        
+
     def __repr__(self):
         msg = "\tCOVERAGE MAKER\n"
-        
+
         if not self.make_bed and not self.make_bedgraph and not self.make_covgraph:
             msg += "\t\tNo output requested\n"
             return msg
-            
+
         msg+= "\t\tMinimal depth : {}\n".format(self.min_depth)
         msg+= "\t\tOutput requested :"
         if self.make_bedgraph:
@@ -49,13 +49,13 @@ class CoverageMaker (object):
 
     def __str__(self):
         return "\n<Instance of {} from {} >\n".format(self.__class__.__name__, self.__module__)
-        
+
     def get(self, key):
         return self.__dict__[key]
 
     def set(self, key, value):
         self.__dict__[key] = value
-        
+
     #~~~~~~~PUBLIC METHODS~~~~~~~#
 
     def make (self, cov_dict, outpath="./out", ref_name = "ref"):
@@ -64,10 +64,10 @@ class CoverageMaker (object):
         @param outpath Basename of the path where to output files
         @param ref_name Name of the reference genome containing the sequence listed in cov_dict
         """
-        
+
         if not self.make_bed and not self.make_bedgraph and not self.make_covgraph:
             return
-        
+
         if self.make_bedgraph:
             print ("\tCreate a bedGraph File...")
             self.bedgraph =  "{}_{}.bedgraph".format(outpath, ref_name)
@@ -75,7 +75,7 @@ class CoverageMaker (object):
                 # Write bedGraph header
                 outfile.write ("track type=bedGraph name={} color=0,0,0\n".format(ref_name))
                 outfile.write(self._make_bedgraph(cov_dict))
-        
+
         if self.make_bed:
             print ("\tCreate a bed File...")
             self.bed =  "{}_{}.bed".format(outpath, ref_name)
@@ -83,15 +83,15 @@ class CoverageMaker (object):
                 # Write bed header
                 outfile.write ("track type=bed name={} color=0,0,0\n".format(ref_name))
                 outfile.write(self._make_bed(cov_dict))
-        
+
         if self.make_covgraph:
             print ("\tCreate coverage graphics...")
-            self._make_covgraph(cov_dict, outpath="./out", ref_name = "ref")
-            
-            
+            self.covgraph_list = self._make_covgraph(cov_dict, outpath, ref_name)
+
+
     def _make_bed (self, cov_dict):
         """
-        Return a string for all positions in all sequences 
+        Return a string for all positions in all sequences
         """
         out = ""
         for seq_name, cov_list in cov_dict.items():
@@ -100,12 +100,12 @@ class CoverageMaker (object):
                     depth = 0
                 out += ("{}\t{}\t{}\t{}\n".format(seq_name, pos, pos, depth))
         return out
-            
-            
+
+
     def _make_bedgraph (self, cov_dict):
         """
         Return a string for positions grouped by interval of the same depth in all sequences.
-        only if it is above the threshold. 
+        only if it is above the threshold.
         """
         out = ""
         for seq_name, cov_list in cov_dict.items():
@@ -125,22 +125,23 @@ class CoverageMaker (object):
                     start = -1
                     depth_prec = 0
         return out
-    
-    
+
+
     def _make_covgraph (self, cov_dict, outpath="./out", ref_name = "ref"):
         """
         @param cov_dict Dictionnary of coverage lists indexed by sequence name
         @param outpath Basename of the path where to output files
         @param ref_name Name of the reference genome containing the sequence listed in cov_dict
         """
+        covgraph_list = []
         for seq_name, cov_list in cov_dict.items():
-            
+
             # Filter coverage if threshold is higher than 0
             if self.min_depth > 0:
                 for i in cov_list:
                     if i < self.min_depth:
                         i = 0
-            
+
             # Create the graph with Utilities.fill_between_graph
             try:
                 fill_between_graph (
@@ -154,14 +155,14 @@ class CoverageMaker (object):
                     xsize = 50,
                     ysize = 10,
                     dpi = 150)
-                    
-                self.covgraph_list.append("{}_{}_{}.svg".format(outpath,ref_name,seq_name))
-            
+                covgraph_list.append("{}_{}_{}.svg".format(outpath,ref_name,seq_name))
+
             except ImportError as E:
                 print(E)
                 print("Cannot create the required CovGraph file. Skip to the next step")
-    
-    
+
+        return covgraph_list
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 class CoverageDecoy(object):
     """
@@ -181,7 +182,7 @@ class CoverageDecoy(object):
 
     def __str__(self):
         return "\n<Instance of {} from {} >\n".format(self.__class__.__name__, self.__module__)
-        
+
     def make (self, *args, **kwargs):
         """
         Decoy make method

@@ -1,32 +1,66 @@
 #~~~~~~~GLOBAL IMPORTS~~~~~~~#
 
 # Local Package import
-from Utilities import import_seq
+from Utilities import DNA_reverse_comp
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 class AdapterTrimmer(object):
     """
-    @class  AdapterTrimmer
-    @brief
+    Search matches of a list of adapter in a reference sequence as a Biopython SeqReccord object
+    If matches are found return the longer interval of the reference without matches is returned
     """
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
     #~~~~~~~FONDAMENTAL METHODS~~~~~~~#
 
+    def __init__ (self, Aligner, adapters, min_read_len=0.6, min_match_len=0.8, min_match_score=1.4, find_rc = False):
+        """
+        @param Aligner Wrapper object for pairwise alignement. The aligner needs to accept a
+        query and a reference DNA string and return a match object with at least 2 fields
+        ref_begin and m.ref_end indicating the starrt and end position along the reference
+        @param adapters List of DNA base string corresponding to adapters to be trimmed
+        @param min_read_len Fraction of read lenth = minimal size of fragment after trimming
+        @param min_match_len Minimal fraction of adapter len that needs to be aligned on the target
+        @param min_match_score Minimal score per base for the alignment of adapter and read
+        @param find_rc If true will also search for the reverse complementary sequence of the adapter
+        """
+        #Store object variables
+        self.min_read_len = min_read_len
+        self.min_match_len = min_match_len
+        self.min_match_score = min_match_score
+        self.Aligner = Aligner
+
+        # Import a list of adapters and add the reverse complements of adapters to the list
+        self.adapter_list = []
+        for id, seq in enumerate (adapters, start=1):
+            self.adapter_list.append({
+                "id": str(id), "seq": seq, "count": 0,
+                "min_score": int(self.min_match_score * len(seq)),
+                "min_len": int(self.min_match_len * len(seq))})
+            if find_rc:
+                self.adapter_list.append({
+                    "id": str(id)+'#',"seq": DNA_reverse_comp(seq), "count": 0,
+                    "min_score": int(self.min_match_score * len(seq)),
+                    "min_len": int(self.min_match_len * len(seq))})
+
+        # Initialize generic counters
+        self.seq_untrimmed = 0
+        self.seq_trimmed = 0
+        self.base_trimmed = 0
+        self.len_pass = 0
+        self.len_fail = 0
+        self.run = False
+
     def __repr__(self):
         msg = "ADAPTER TRIMMER\n"
-        msg += "  List of adapters imported for trimming"
+        msg += "  List of adapters imported for trimming\n"
 
         for a in self.adapter_list:
-            msg += "\n  Name : {}".format(a.id)
-            msg += "  Sequence : {}".format(a.seq)
-            msg += "  Min score : {}".format(a.annotations["min_score"])
-            msg += "  Min len : {}".format(a.annotations["min_len"])
-            if self.run:
-                msg += "  Trimmed : {}".format(a.annotations["count"])
+            msg += "  id: {}\tSequence: {}\tMin score: {}\tMin len: {}\tCount: {}\n".format(
+                a['id'], a['seq'], a['min_score'], a['min_len'], a['count'])
 
         if self.run:
-            msg += "\n  Sequences untrimmed : {}\n".format(self.seq_untrimmed)
+            msg += "  Sequences untrimmed : {}\n".format(self.seq_untrimmed)
             msg += "  Sequences trimmed : {}\n".format(self.seq_trimmed)
             msg += "  DNA base trimmed : {}\n".format(self.base_trimmed)
             msg += "  Fail len filtering: {}\n".format(self.len_fail)
@@ -37,71 +71,40 @@ class AdapterTrimmer(object):
     def __str__(self):
         return "<Instance of {} from {} >\n".format(self.__class__.__name__, self.__module__)
 
-    def __init__ (self, aligner, adapter_path, min_read_len=0.6, min_match_len=0.8, min_match_score=1.4):
-        """
-        @param aligner Wrapper object of pairwise alignement
-        @param adapter_path Path of a multi fasta file containing all the adapters sequences
-        @param min_read_len Fraction of read lenth = minimal size of fragment after trimming
-        @param min_match_len Minimal fraction of adapter len that needs to be aligned on the target
-        @param min_match_score Minimal score per base for the alignment of adapter and read
-        """
-        # Init object variables
-        self.min_read_len = min_read_len
-        self.min_match_len = min_match_len
-        self.min_match_score = min_match_score
-        # wrapper of pairwise alignement
-        self.aligner = aligner
+    def get(self, key):
+        return self.__dict__[key]
 
-        # Import a list of adapters and add the reverse complements of adapters to the list
-        self.adapter_list = import_seq(adapter_path, "list", "fasta")
-        adapter_rc = []
-        for i in self.adapter_list:
-            rc = i.reverse_complement()
-            rc.id = i.id + "_RC"
-            adapter_rc.append(rc)
-        self.adapter_list.extend(adapter_rc)
-
-        # Initialize entries in each adapter annotations dictionnaries
-        # Count = counter of match
-        # Min_score = minimal score of match normalized by the size of the adapter
-        # Min_len = minimal size of the adapter to be aligned on the read
-        for a in self.adapter_list:
-            a.annotations["count"] = 0
-            a.annotations["min_score"] = int(self.min_match_score * len(a))
-            a.annotations["min_len"] = int(self.min_match_len * len(a))
-
-        # Initialize generic counters
-        self.seq_untrimmed = 0
-        self.seq_trimmed = 0
-        self.base_trimmed = 0
-        self.len_pass = 0
-        self.len_fail = 0
-        self.run = False
+    def set(self, key, value):
+        self.__dict__[key] = value
 
     #~~~~~~~PUBLIC METHODS~~~~~~~#
 
     def trimmer (self, record):
         """
-        @param record A seq record object containing the subject reference sequence to be trimmed
+        Trim reference sequence by finding matches of adapters with the Aligner object and the
+        longuest interval without adapters with _longer_interval
+        @param record A BioPython seqRecord object containing the subject reference sequence to be
+        trimmed
+        @return If no matches were found the original sequence. If matches were found a trimmed
+        record if the fraction of lenght remaining after trimming is above min_read_len and
+        elsewhere nothing
         """
         self.run = True
         match_list = []
         len_rec = len(record)
 
-        # Set a new reference sequence into the aligner
-        self.aligner.set_ref(str(record.seq))
+        # Set a new reference sequence into the Aligner
+        self.Aligner.set_ref(str(record.seq))
 
-        # Iterate over the adaters in adapter_list
         for a in self.adapter_list:
-
             # Find match of the adapter along the current read
-            match = self.aligner.align(str(a.seq), a.annotations["min_score"], a.annotations["min_len"])
+            match = self.Aligner.align(a['seq'], a["min_score"], a["min_len"])
 
             # if a match was found = increment the counter and append the match to the match list
             if match:
                 #print ("Adapter found : {}\tScore : {}\tCigar : {}\tMatchLen : {}".format(
                 #a.id, match.score, match.cigar_string, match.query_end-match.query_begin))
-                a.annotations["count"] += 1
+                a["count"] += 1
                 match_list.append(match)
 
         # In case no match were found, the sequence doesn't need to be modify
@@ -129,8 +132,9 @@ class AdapterTrimmer(object):
 
     def _longer_interval(self, match_list, len_seq):
         """
-        Find the first larger interval that do not overlapp any match in match list
-        This strategy allow to use an unsorted list of match
+        Find the first larger interval that do not overlapp any matches in match list.
+        This strategy allow to use an unsorted list of match but will be highly memory consummming
+        for large reference.
         """
         # Initialize a list of boolean to False of the same size as the read
         coverage = [False for i in range(len_seq)]
@@ -156,21 +160,5 @@ class AdapterTrimmer(object):
         #print ("Longer interval = {} [{}:{}]".format(inter_max, start_max+1, end_max-1))
         return start_max, end_max
 
-    #~~~~~~~ GETTERS ~~~~~~~#
-
-    def get_seq_untrimmed (self):
-        return self.seq_untrimmed
-
-    def get_seq_trimmed (self):
-        return self.seq_trimmed
-
-    def get_base_trimmed (self):
-        return self.base_trimmed
-
-    def get_len_pass (self):
-        return self.len_pass
-
-    def get_len_fail (self):
-        return self.len_fail
 
 

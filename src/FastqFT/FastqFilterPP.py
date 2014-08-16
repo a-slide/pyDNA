@@ -25,33 +25,6 @@ class FastqFilterPP(object):
 
     #~~~~~~~FONDAMENTAL METHODS~~~~~~~#
 
-    def __repr__(self):
-        msg = "FASTQ FILTER Parallel Processing\n"
-        msg += "\tExecution time : {} s\n".format(self.exec_time)
-        msg += "\tInput fastq files\n\t\t{}\n\t\t{}\n".format (self.R1_in, self.R2_in)
-        msg += "\tOutput fastq files\n\t\t{}\n\t\t{}\n".format (self.R1_out, self.R2_out)
-        msg += "\tInput quality score : {}\n".format (self.input_qual)
-        msg += "\tNumber of parrallel processes : {}\n".format (self.numprocs)
-        msg += "\tTotal pair processed : {}\n".format(self.total.value)
-        if self.qual:
-            msg += "QUALITY FILTER\n"
-            msg += "\tPair pass quality filter : {}\n".format(self.pass_qual.value)
-            msg += "\tMean quality value : {}\n".format(self.weighted_mean.value/self.total.value/2)
-            msg += "\tMin quality value : {}\n".format(self.min_qual_found.value)
-            msg += "\tMax quality value : {}\n".format(self.max_qual_found.value)
-        if self.adapt:
-            msg += "ADAPTER TRIMMER\n"
-            msg += "\tPair pass adapter Trimming : {}\n".format(self.pass_trim.value)
-            msg += "\tSequences untrimmed : {}\n".format(self.seq_untrimmed.value)
-            msg += "\tSequences trimmed : {}\n".format(self.seq_trimmed.value)
-            msg += "\tDNA base trimmed : {}\n".format(self.base_trimmed.value)
-            msg += "\tFail len filtering: {}\n".format(self.len_fail.value)
-            msg += "\tPass len filtering : {}\n".format(self.len_pass.value)
-        return msg
-
-    def __str__(self):
-        return "<Instance of {} from {} >\n".format(self.__class__.__name__, self.__module__)
-
     def __init__(self, R1, R2,
         quality_filter=None,
         adapter_trimmer=None,
@@ -61,12 +34,12 @@ class FastqFilterPP(object):
         compress_output=True):
         """
         Instanciate the object by storing call parameters and init shared memory counters for
-        interprocess communication. A reader process iterate over the input paired fastq files 
-        and add coupled R1 and R2 sequences as Biopython seqRecord to a first shared queue. 
+        interprocess communication. A reader process iterate over the input paired fastq files
+        and add coupled R1 and R2 sequences as Biopython seqRecord to a first shared queue.
         Then according to the initial parametring, a multiprocessing filter pull out seqRecord
         couples from the queue and apply a quality filtering and/or adapter trimming. Couples
-        passing throught the filters are added to a second shared queue. Finally, couples in the 
-        second queue are written in an output fastq file 
+        passing throught the filters are added to a second shared queue. Finally, couples in the
+        second queue are written in an output fastq file
         @param R1 Path to the forward read fastq file (can be gzipped)
         @param R2 Path to the reverse read fastq file (can be gzipped)
         @param quality_filter A QualityFilter object, if a quality filtering is required.
@@ -76,7 +49,7 @@ class FastqFilterPP(object):
         @param numprocs Number of parrallel processes for the filtering steps. If not provide
         the maximum number of thread available will be automatically used.
         @param compress_output If True the output fastq will be written directly in a gzipped file.
-        False will generate an uncompressed a much bigger file but will be around 
+        False will generate an uncompressed a much bigger file but will be around
         """
         # Start a timer
         start_time = time()
@@ -96,7 +69,7 @@ class FastqFilterPP(object):
         else:
             self.R1_out = path.join(self.outdir, file_basename(self.R1_in)+"_1_filtered.fastq")
             self.R2_out = path.join(self.outdir, file_basename(self.R2_in)+"_2_filtered.fastq")
-        
+
         # Init shared memory counters
         self.total = Value('i', 0)
         self.pass_qual = Value('i', 0)
@@ -117,22 +90,22 @@ class FastqFilterPP(object):
         self.nseq = count_seq(R1, "fastq")
         print("fastq files contain {} sequences to align".format(self.nseq))
         self.nseq_list = [int(self.nseq*i/100.0) for i in range(5,101,5)] # 5 percent steps
-        
+
         # Init queues for input file reading and output file writing (limited to 10000 objects)
         self.inq = Queue(maxsize=10000)
         self.outq = Queue(maxsize=10000)
-        
+
         # Init processes for file reading, distributed filtering and file writing
         self.pin = Process(target=self.reader, args=())
         self.ps = [Process(target=self.filter, args=()) for i in range(self.numprocs)]
         self.pout = Process(target=self.writer, args=())
-        
+
         # Start processes
         self.pin.start()
         self.pout.start()
         for p in self.ps:
             p.start()
-            
+
         # Blocks until the process is finished
         self.pin.join()
         print ("\tReading done")
@@ -141,9 +114,42 @@ class FastqFilterPP(object):
         print ("\tFiltering done")
         self.pout.join()
         print ("\tWriting done\n")
-        
+
         # Stop timer and store the value
         self.exec_time = round(time()-start_time, 3)
+
+    def __repr__(self):
+        msg = "FASTQ FILTER Parallel Processing\n"
+        msg += "\tExecution time : {} s\n".format(self.exec_time)
+        msg += "\tInput fastq files\n\t\t{}\n\t\t{}\n".format (self.R1_in, self.R2_in)
+        msg += "\tOutput fastq files\n\t\t{}\n\t\t{}\n".format (self.R1_out, self.R2_out)
+        msg += "\tInput quality score : {}\n".format (self.input_qual)
+        msg += "\tNumber of parallel processes : {}\n".format (self.numprocs)
+        msg += "\tTotal pair processed : {}\n".format(self.total.value)
+        if self.qual:
+            msg += "QUALITY FILTER\n"
+            msg += "\tPair pass quality filter : {}\n".format(self.pass_qual.value)
+            msg += "\tMean quality value : {}\n".format(self.weighted_mean.value/self.total.value/2)
+            msg += "\tMin quality value : {}\n".format(self.min_qual_found.value)
+            msg += "\tMax quality value : {}\n".format(self.max_qual_found.value)
+        if self.adapt:
+            msg += "ADAPTER TRIMMER\n"
+            msg += "\tPair pass adapter Trimming : {}\n".format(self.pass_trim.value)
+            msg += "\tSequences untrimmed : {}\n".format(self.seq_untrimmed.value)
+            msg += "\tSequences trimmed : {}\n".format(self.seq_trimmed.value)
+            msg += "\tDNA base trimmed : {}\n".format(self.base_trimmed.value)
+            msg += "\tFail len filtering: {}\n".format(self.len_fail.value)
+            msg += "\tPass len filtering : {}\n".format(self.len_pass.value)
+        return msg
+
+    def __str__(self):
+        return "<Instance of {} from {} >\n".format(self.__class__.__name__, self.__module__)
+
+    def get(self, key):
+        return self.__dict__[key]
+
+    def set(self, key, value):
+        self.__dict__[key] = value
 
     #~~~~~~~PRIVATE METHODS~~~~~~~#
 
@@ -159,16 +165,16 @@ class FastqFilterPP(object):
                 in_R1 = gzip.open(self.R1_in, "rb")
             else:
                 in_R1 = open(self.R1_in, "rb")
-            
+
             if self.R2_in[-2:].lower() == "gz":
                 in_R2 = gzip.open(self.R2_in, "rb")
             else:
                 in_R2 = open(self.R2_in, "rb")
-                
+
         except (IOError, TypeError, ValueError) as E:
             print E
             exit
-        
+
         # Init generators to iterate over files
         genR1 = SeqIO.parse(in_R1, self.input_qual)
         genR2 = SeqIO.parse(in_R2, self.input_qual)
@@ -237,7 +243,7 @@ class FastqFilterPP(object):
         # Fill shared memomory counters from process specific object instances.
         if self.qual:
             with self.weighted_mean.get_lock():
-                self.weighted_mean.value += (self.qual.get_mean_qual()*self.qual.get_tot_seq())
+                self.weighted_mean.value += (self.qual.get_mean_qual()*self.qual.get('total'))
             if self.qual.get_min_qual() < self.min_qual_found.value:
                 self.min_qual_found.value = self.qual.get_min_qual()
             if self.qual.get_max_qual() > self.max_qual_found.value:
@@ -245,15 +251,15 @@ class FastqFilterPP(object):
 
         if self.adapt:
             with self.seq_untrimmed.get_lock():
-                self.seq_untrimmed.value += self.adapt.get_seq_untrimmed()
+                self.seq_untrimmed.value += self.adapt.get('seq_untrimmed')
             with self.seq_trimmed.get_lock():
-                self.seq_trimmed.value += self.adapt.get_seq_trimmed()
+                self.seq_trimmed.value += self.adapt.get('seq_trimmed')
             with self.base_trimmed.get_lock():
-                self.base_trimmed.value += self.adapt.get_base_trimmed()
+                self.base_trimmed.value += self.adapt.get('base_trimmed')
             with self.len_pass.get_lock():
-                self.len_pass.value += self.adapt.get_len_pass()
+                self.len_pass.value += self.adapt.get('len_pass')
             with self.len_fail.get_lock():
-                self.len_fail.value += self.adapt.get_len_fail()
+                self.len_fail.value += self.adapt.get('len_fail')
 
     def writer(self):
         """
@@ -279,9 +285,9 @@ class FastqFilterPP(object):
 
         out_R1.close()
         out_R2.close()
-        
+
     #~~~~~~~GETTERS METHODS~~~~~~~#
-        
+
     def getTrimmed (self):
         return (self.R1_out, self.R2_out)
 
