@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-@package    pyDNA2
+@package    pyDNA
 @brief      **Generic collection of python Utilities and Wrapper for DNA/NGS data manipulation for python 2.7**
 For now it includes BWA, Blast and Smith–Waterman wrappers as well as higher level functionnalities:
 
