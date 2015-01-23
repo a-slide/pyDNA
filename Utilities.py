@@ -474,6 +474,33 @@ def gb_to_bed(gb_file, track_description="User Supplied Track", features_type = 
                     strand))
     return outf
 
+def fetch_count_read (alignment_file, seq_name, start, end):
+    """
+    Count the number of read that are at least partly overlapping a specified chromosomic region
+    @param alignment_file Path to a sam or a bam file
+    @param seq_name Name of the sequence where read are to be aligned on
+    @param start Start genomic coordinates of the area of alignment
+    @param end End End genomic coordinates of the area of alignment
+    """
+    # Specific imports
+    from pysam import AlignmentFile
+    
+    # Init a generator on the sam or bam file with pysam
+    if alignment_file[-3:].lower() == "sam":
+        al = AlignmentFile(bam_file, "rb")
+        
+    elif alignment_file[-3:].lower() == "bam":
+        al = AlignmentFile(bam_file, "r")
+    
+    else:
+        raise Exception("Wrong file format (sam or bam)") 
+    
+    # Count read aligned at least partly on the specified region
+    n = 0
+    for i in al.fetch(seq_name, start, end):
+        n += 1
+    return n
+
 
 #~~~~~~~GRAPHICAL UTILIES~~~~~~~#
 
