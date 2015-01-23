@@ -486,11 +486,11 @@ def fetch_count_read (alignment_file, seq_name, start, end):
     from pysam import AlignmentFile
     
     # Init a generator on the sam or bam file with pysam
-    if alignment_file[-3:].lower() == "sam":
-        al = AlignmentFile(bam_file, "rb")
+    if alignment_file[-3:].lower() == "bam":
+        al = AlignmentFile(alignment_file, "rb")
         
-    elif alignment_file[-3:].lower() == "bam":
-        al = AlignmentFile(bam_file, "r")
+    elif alignment_file[-3:].lower() == "sam":
+        al = AlignmentFile(alignment_file, "r")
     
     else:
         raise Exception("Wrong file format (sam or bam)") 
