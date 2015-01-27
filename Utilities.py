@@ -83,6 +83,24 @@ def make_cmd_str(prog_name, opt_dict={}, opt_list=[]):
 
 #~~~~~~~FILE MANIPULATION~~~~~~~#
 
+def is_readable_file (file_path):
+    """
+    Verify the readability of a file or list of file
+    """
+    from os import access, R_OK
+    
+    if isinstance (file_path, str):
+        file_path = [file_path]
+    
+    if isinstance (file_path, list):
+        for fp in file_path :
+            if not access(fp, R_OK):
+                raise ValueError ("{} is not a valid file".format(fp))
+                
+    else:
+        raise TypeError ("File path shoud be a path or a list of paths")
+        
+
 def is_gziped (fp):
     """
     @param fp path to a files eventually gzipped
