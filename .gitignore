@@ -12,6 +12,11 @@ build/
 develop-eggs/
 dist/
 downloads/
+=======
+bin/
+build/
+develop-eggs/
+dist/
 eggs/
 lib/
 lib64/
@@ -28,6 +33,7 @@ var/
 *.manifest
 *.spec
 
+=======
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
@@ -46,6 +52,19 @@ coverage.xml
 
 # Django stuff:
 *.log
+=======
+
+# Mr Developer
+.mr.developer.cfg
+.project
+.pydevproject
+
+# Rope
+.ropeproject
+
+# Django stuff:
+*.log
+*.pot
 
 # Sphinx documentation
 docs/_build/
@@ -53,5 +72,3 @@ docs/_build/
 # PyBuilder
 target/
 
-# do not git test folder content
-#test/
