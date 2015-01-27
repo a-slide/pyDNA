@@ -8,6 +8,11 @@ __pycache__/
 # Distribution / packaging
 .Python
 env/
+build/
+develop-eggs/
+dist/
+downloads/
+=======
 bin/
 build/
 develop-eggs/
@@ -22,6 +27,13 @@ var/
 .installed.cfg
 *.egg
 
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+=======
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
@@ -36,6 +48,11 @@ coverage.xml
 
 # Translations
 *.mo
+*.pot
+
+# Django stuff:
+*.log
+=======
 
 # Mr Developer
 .mr.developer.cfg
@@ -51,4 +68,7 @@ coverage.xml
 
 # Sphinx documentation
 docs/_build/
+
+# PyBuilder
+target/
 
