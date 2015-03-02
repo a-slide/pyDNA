@@ -517,8 +517,63 @@ def fetch_count_read (alignment_file, seq_name, start, end):
     n = 0
     for i in al.fetch(seq_name, start, end):
         n += 1
+        
+    al.close()
+    
     return n
+    
+    
+def fetch_all_bam (bam_pattern, seq_name, coord_list, outname):
+    """
+    for all bam files matching the pattern, count the number of read overlapping list of coordinates
+    and generate a file report
+    @param bam_pattern Pattern to match in bam file to be included in the analysis 
+    @param seq_name Name of the sequence where read are to be aligned on
+    @param coord_list list of coordinate start and end where to find overlapping reads
+    @param outname Name of the output csv file repport
+    """
+    import os, csv, glob
+    import pysam
+    
+    # Find bam matching the patern and sorting the list alphabetically
+    bam_list = list(glob.iglob("*"+bam_pattern+"*"+".bam"))
+    bam_list.sort()
+    print ("Files analysed :")
+    print (bam_list)
+    
+    # Generate a table header
+    header = ["Coordinates"]
+    for start, end in coord_list:
+        header.append("{}:{}".format(start, end))
+    
+    # Generate a list to store hit found
+    all_hits = []
+    all_hits.append(header)
 
+    # Fetch file for coordinates in coord list 
+    for bam in bam_list:
+        print("\nAnalysing file : "+bam)
+        
+        if not os.path.isfile(bam+".bai"):
+            print ("\tGenerate a Bam index")
+            pysam.index(bam)
+        
+        hits = [bam]
+        for start, end in coord_list:
+            hits.append(fetch_count_read(bam, seq_name, start, end))
+        
+        all_hits.append(hits)
+    
+    # Finally write a new table
+    print ("\nWrite results in a csv table") 
+    with open(outname, 'wb') as csvfile:
+        writer = csv.writer(csvfile, delimiter='\t', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        for i in all_hits:
+            writer.writerow(i)
+
+    print("Done")
+
+    return
 
 #~~~~~~~GRAPHICAL UTILIES~~~~~~~#
 
