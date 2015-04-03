@@ -13,8 +13,9 @@
 * [Atlantic Gene Therapies - INSERM 1089] (http://www.atlantic-gene-therapies.fr/)
 """
 
-import io
-import zlib
+from io import open as iopen
+from zlib import decompressobj as zlib_decompressobj
+from zlib import MAX_WBITS as zlib_MAX_WBITS
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 class Ungzip(object):
@@ -25,13 +26,13 @@ class Ungzip(object):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
     def __init__(self, buffer_size=1024*1024*8):
-        self.dobj = zlib.decompressobj(16+zlib.MAX_WBITS) #16+zlib.MAX_WBITS -> zlib can decompress gzip
+        self.dobj = zlib_decompressobj(16+zlib_MAX_WBITS) #16+zlib.MAX_WBITS -> zlib can decompress gzip
         self.decomp = []
         self.lines = []
         self.buffer_size = buffer_size
 
     def open(self, filename):
-        self.fhwnd = io.open(filename, "rb")
+        self.fhwnd = iopen(filename, "rb")
         self.eof = False
 
     def close(self):
