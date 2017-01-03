@@ -31,7 +31,7 @@ class Aligner(object):
     def __str__(self):
         return "<Instance of {} from {} >\n".format(self.__class__.__name__, self.__module__)
 
-    def __init__ (self, Blastdb, blastn_opt="", blastn="blastn"):
+    def __init__ (self, Blastdb, blastn_opt="", blastn="blastn", num_threads=1):
         """
         Initialize the object and index the reference genome if necessary
         @param Blastdb Blast database object NewDB or ExistingDB
@@ -42,10 +42,14 @@ class Aligner(object):
         # Creating object variables
         self.blastn = blastn
         self.Blastdb = Blastdb
+        self.num_threads = num_threads
 
         # init an option dict and attribute defaut options
+        # if num_threads == 0 use all cores on the node
+        if self.num_threads == 0:
+            self.num_threads = cpu_count()
         self.blastn_opt = "{} -num_threads {} -task {} -outfmt {} -dust {} -db {}".format(
-            blastn_opt, cpu_count(), "blastn", 6, "no", self.Blastdb.db_path)
+            blastn_opt, self.num_threads, "blastn", 6, "no", self.Blastdb.db_path)
 
     #~~~~~~~PUBLIC METHODS~~~~~~~#
 
