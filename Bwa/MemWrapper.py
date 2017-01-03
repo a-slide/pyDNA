@@ -29,7 +29,7 @@ class Aligner(object):
     def __str__(self):
         return "<Instance of {} from {} >\n".format(self.__class__.__name__, self.__module__)
 
-    def __init__ (self, Index, align_opt="", aligner = "bwa mem"):
+    def __init__ (self, Index, align_opt="", aligner = "bwa mem", bwa_threads = 1):
         """
         Initialize the object and index the reference genome if necessary
         @param Index Bwa index object NewIndex or ExistingIndex
@@ -39,8 +39,12 @@ class Aligner(object):
         # Creating object variables
         self.aligner = aligner
         self.Index = Index
+        self.bwa_threads = bwa_threads
+        # if bwa_threads == 0 use all cores on the node
+        if self.bwa_threads == 0:
+            self.bwa_threads = cpu_count()
         # By default the option t is setted to the max number of available threads
-        self.align_opt = "{} -t {}".format(align_opt, cpu_count())
+        self.align_opt = "{} -t {}".format(align_opt, bwa_threads)
 
     #~~~~~~~PUBLIC METHODS~~~~~~~#
 

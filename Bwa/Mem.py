@@ -17,6 +17,7 @@ def align  (R1,
             ref = '',
             aligner = "bwa mem",
             align_opt="",
+            bwa_threads = 1,
             align_outdir= "./bwa_align/",
             align_outname= "out.sam",
             indexer = "bwa index",
@@ -66,7 +67,7 @@ def align  (R1,
         idx = NewIndex(ref, index_path, index_opt, indexer)
 
     # Create a Aligner object
-    mem = Aligner(idx, align_opt, aligner)
+    mem = Aligner(idx, align_opt, aligner, bwa_threads)
     #~print (repr(mem))
     mkdir(align_outdir)
 
