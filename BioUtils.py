@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 
 """
-@package
-@brief
+@package pyDNA
+@brief  Collection of functions to manipulate DNA sequences
 @copyright  [GNU General Public License v2](http://www.gnu.org/licenses/gpl-2.0.html)
 @author     Adrien Leger - 2015
-* <adrien.leger@gmail.com>
-* <adrien.leger@inserm.fr>
-* <adrien.leger@univ-nantes.fr>
+* <adrien.leger@gmail.com> <adrien.leger@inserm.fr> <adrien.leger@univ-nantes.fr>
 * [Github](https://github.com/a-slide)
 * [Atlantic Gene Therapies - INSERM 1089] (http://www.atlantic-gene-therapies.fr/)
 """
@@ -128,7 +126,6 @@ def DNA_reverse_comp (sequence, AmbiguousBase=True):
             compl_sequence += 'N'
 
     return compl_sequence[::-1]
-
 
 def gb_to_bed(gb_file, track_description="User Supplied Track", features_type = []):
     """
