@@ -14,9 +14,10 @@ def align  (query_list,
             subject_db = None,
             subject_fasta = None,
             aligner = "blastn",
-            align_opt="",
+            align_opt = "",
+            num_threads = 1,
             db_maker = "makeblastdb",
-            db_opt="",
+            db_opt = "",
             db_outdir = "./blast_db/",
             db_outname = "out"):
 
@@ -61,7 +62,7 @@ def align  (query_list,
         db = NewDB(ref_path=subject_fasta, db_path=db_path, makeblastdb_opt=db_opt, makeblastdb=db_maker)
 
     # Initialise a Blastn object
-    blast = Aligner(db, align_opt, aligner)
+    blast = Aligner(db, align_opt, aligner, num_threads)
     #~print (repr(blast))
 
     # Generate a list of hit containing hits of all sequence in query list in subject
